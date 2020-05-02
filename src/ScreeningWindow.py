@@ -21,9 +21,11 @@ class ScreeningWindow(BaseWidget):
         # Definition of the forms fields
         self._screening_info = screening_info
         self._client = client
-        self._image = self._client.service.getImage(self._screening_info['id_showing'])
+        self._image = self._client.service.getImage(self._screening_info['movie']['id_movie'])
         image_open = Image.open(io.BytesIO(self._image))
         rgb_im = image_open.convert('RGB')
+        if not os.path.exists("../resources/images"):
+            os.makedirs("../resources/images")
         rgb_im.save(f'../resources/images/{str(self._screening_info["movie"]["id_movie"])}.jpg')
         self._dateField = ControlText('Date', enabled=False,
                                           default=self._screening_info['date'].strftime("%d-%m-%Y"))
