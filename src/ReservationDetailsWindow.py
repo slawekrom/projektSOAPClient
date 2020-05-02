@@ -28,13 +28,24 @@ class ReservationDetailsWindow(BaseWidget):
         person_exists = self._client.service.checkIfPersonExist(str(self._peselField.value))
         if not person_exists:
             print("Before commit")
-            # self._client.service.addPerson(self._nameField.value, self._surnameField.value, self._peselField.value)
+            self._client.service.addPerson(self._nameField.value, self._surnameField.value, self._peselField.value)
+            person = self._client.service.getPersonByPesel(str(self._peselField.value))
             print("Person commited")
-        print("After if")
-        # person = self._client.service.getPersonByPesel(str(self._peselField.value))
-        # print("Guzik:", self._seats, False, person['id_person'], self._screening_info['id_showing'])
-        # self._client.service.addNewReservation(self._seats, False, person['id_person'],self._screening_info['id_showing'])
+        else:
+            person = self._client.service.getPersonByPesel(str(self._peselField.value))
+            win = DialogWindow(
+                f"User already exists, adding to user with name: {person['firstName'] + ' ' + person['secondName']}")
+            win.parent = self
+            win.show()
 
+        self._client.service.addNewReservation(self._seats, False, person['id_person'],
+                                               self._screening_info['id_showing'])
+
+        win = DialogWindow("Seats successfully booked")
+        win.parent = self
+        win.show()
+        self.close()
+        self.parent.close()
     # Execute the application
 
 

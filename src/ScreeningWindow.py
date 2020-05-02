@@ -1,14 +1,17 @@
+import io
+
 import pyforms
+from PIL import Image
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlText
-from pyforms.controls import ControlButton, ControlTextArea, ControlDockWidget
+from pyforms.controls import ControlButton, ControlTextArea, ControlDockWidget, ControlImage
 from suds.client import Client
 
 from src.DialogWindow import DialogWindow
 from src.ReservationDetailsWindow import ReservationDetailsWindow
 
 
-class ReservationWindow(BaseWidget):
+class ScreeningWindow(BaseWidget):
 
     def __init__(self, screening_info: dict, client: Client):
         BaseWidget.__init__(self, 'Person window')
@@ -18,6 +21,8 @@ class ReservationWindow(BaseWidget):
         self._dateField = ControlText('Date', enabled=False, default=self._screening_info['date'].strftime("%d-%m-%Y"))
         self.__timeField = ControlText('Time', enabled=False, default=self._screening_info['date'].strftime("%H:%M"))
         self._titleField = ControlText('Title', enabled=False, default=self._screening_info['movie']['title'])
+        # self._imageField = ControlImage('Poster',
+        #                                 default=Image.open(io.BytesIO(self._screening_info['movie']['image'].encode())))
         self._freeSeatsField = ControlTextArea('Free seats', enabled=False, default=self._screening_info['freePlaces'])
         self._chosenSeatsField = ControlText('Chosen seats (write down the numbers and separate them with ";")')
         self._buttonField = ControlButton('Reserve')
@@ -41,4 +46,4 @@ class ReservationWindow(BaseWidget):
 
 
 if __name__ == "__main__":
-    pyforms.start_app(ReservationWindow)
+    pyforms.start_app(ScreeningWindow)
