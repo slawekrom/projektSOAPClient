@@ -2,7 +2,7 @@ import pyforms
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlText
 from pyforms.controls import ControlButton, ControlTextArea, ControlCheckBox
-from suds.client import Client
+from zeep import Client
 
 from src.DialogWindow import DialogWindow
 

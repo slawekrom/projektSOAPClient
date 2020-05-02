@@ -1,11 +1,14 @@
 import io
+import os
 
+import cv2
 import pyforms
 from PIL import Image
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlText
 from pyforms.controls import ControlButton, ControlTextArea, ControlDockWidget, ControlImage
-from suds.client import Client
+from zeep import Client
+from numpy import asarray
 
 from src.DialogWindow import DialogWindow
 from src.ReservationDetailsWindow import ReservationDetailsWindow
@@ -18,11 +21,16 @@ class ScreeningWindow(BaseWidget):
         # Definition of the forms fields
         self._screening_info = screening_info
         self._client = client
-        self._dateField = ControlText('Date', enabled=False, default=self._screening_info['date'].strftime("%d-%m-%Y"))
+        self._image = self._client.service.getImage(self._screening_info['id_showing'])
+        image_open = Image.open(io.BytesIO(self._image))
+        rgb_im = image_open.convert('RGB')
+        rgb_im.save(f'../resources/images/{str(self._screening_info["movie"]["id_movie"])}.jpg')
+        self._dateField = ControlText('Date', enabled=False,
+                                          default=self._screening_info['date'].strftime("%d-%m-%Y"))
         self.__timeField = ControlText('Time', enabled=False, default=self._screening_info['date'].strftime("%H:%M"))
         self._titleField = ControlText('Title', enabled=False, default=self._screening_info['movie']['title'])
-        # self._imageField = ControlImage('Poster',
-        #                                 default=Image.open(io.BytesIO(self._screening_info['movie']['image'].encode())))
+        self._imageField = ControlImage('Poster')
+        self._imageField.value = cv2.imread(f'../resources/images/{str(self._screening_info["id_showing"])}.jpg')
         self._freeSeatsField = ControlTextArea('Free seats', enabled=False, default=self._screening_info['freePlaces'])
         self._chosenSeatsField = ControlText('Chosen seats (write down the numbers and separate them with ";")')
         self._buttonField = ControlButton('Reserve')

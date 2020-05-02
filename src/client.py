@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlNumber, ControlText, ControlButton, ControlList, ControlDockWidget
-from suds.client import Client
+from zeep import Client
 
 from src.ClientReservationWindow import ClientReservationWindow
 from src.ScreeningWindow import ScreeningWindow
@@ -90,7 +90,6 @@ class CinemaManager(BaseWidget):
         self._reservation_list.clear()
         self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
         for reservation in self._all_reservations:
-            print("reservation:", reservation)
             self._reservation_list += [reservation['showing']['date'].strftime("%d-%m-%Y"),
                                        reservation['showing']['date'].strftime("%H:%M"),
                                        str(reservation['showing']['movie']['title']), str(reservation['places']),
@@ -108,7 +107,6 @@ class CinemaManager(BaseWidget):
         self._reservation_list.clear()
         self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
         for reservation in self._all_reservations:
-            print("reservation:", reservation)
             self._reservation_list += [reservation['showing']['date'].strftime("%d-%m-%Y"),
                                        reservation['showing']['date'].strftime("%H:%M"),
                                        str(reservation['showing']['movie']['title']), str(reservation['places']),
@@ -116,13 +114,11 @@ class CinemaManager(BaseWidget):
 
     def _change_day(self):
         self._selected_date = self._selected_date.replace(day=int(self._screening_day.value))
-        print(self._selected_date)
 
     def _change_month(self):
         self._selected_date = self._selected_date.replace(month=int(self._screening_month.value), day=1)
         self._screening_day.max = monthrange(self._selected_date.year, self._selected_date.month)[1]
         self._screening_day.value = 1
-        print(self._selected_date)
 
 
 if __name__ == '__main__':
