@@ -72,12 +72,29 @@ class CinemaManager(BaseWidget):
         self._screening_panel.value = win
 
     def _reservation_changed_event(self, row, column):
+        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
         win = ClientReservationWindow(self._all_reservations[row], self._client)
         win.parent = self
         self._screening_panel.hide()
         self._reservation_panel.show()
-        self._screening_panel.label = "Reservation details"
-        self._screening_panel.value = win
+        self._reservation_panel.label = "Reservation details"
+        self._reservation_panel.value = win
+
+    def updateInfo(self):
+        self._screening_list.clear()
+        self._all_showings = self._client.service.getShowingsByDate(self._selected_date.year, self._selected_date.month,
+                                                                    self._selected_date.day)
+        for show in self._all_showings:
+            self._screening_list += [show.date.strftime("%H:%M"), str(show.movie.title),
+                                     str(show.movie.description)]
+        self._reservation_list.clear()
+        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
+        for reservation in self._all_reservations:
+            print("reservation:", reservation)
+            self._reservation_list += [reservation['showing']['date'].strftime("%d-%m-%Y"),
+                                       reservation['showing']['date'].strftime("%H:%M"),
+                                       str(reservation['showing']['movie']['title']), str(reservation['places']),
+                                       "Yes" if reservation['isPaid'] is True else "No"]
 
     def _searchScreeningsButton(self):
         self._screening_list.clear()

@@ -46,6 +46,7 @@ class ReservationDetailsWindow(BaseWidget):
         win.show()
         self.close()
         self.parent.close()
+        self.parent.parent.updateInfo()
     # Execute the application
 
 
