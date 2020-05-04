@@ -1,3 +1,5 @@
+import os
+
 import pyforms
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlText
@@ -25,6 +27,7 @@ class ClientReservationWindow(BaseWidget):
         self._seatsField = ControlTextArea('Seats', enabled=False, default=str(self._reservation_info['places']))
         self._paidField = ControlCheckBox('Is paid?', enabled=False, default=self._reservation_info['isPaid'])
         self._payButton = ControlButton('Pay')
+        self._downloadPdfButton = ControlButton('Download PDF')
         self._editReservationButton = ControlButton('Edit')
         self._removeReservationButton = ControlButton('Remove')
 
@@ -32,10 +35,11 @@ class ClientReservationWindow(BaseWidget):
         self._payButton.value = self._payAction
         self._editReservationButton.value = self._editAction
         self._removeReservationButton.value = self._removeAction
+        self._downloadPdfButton.value = self._downloadPdfAction
 
         self.formset = [('_dateField', '_timeField'), '_titleField', '_availableSeatsField', '_seatsField',
                         '_paidField',
-                        ('_payButton', '_editReservationButton', '_removeReservationButton')]
+                        ('_payButton', '_editReservationButton', '_removeReservationButton','_downloadPdfButton')]
 
     def _payAction(self):
         if not self._reservation_info['isPaid']:
@@ -84,6 +88,16 @@ class ClientReservationWindow(BaseWidget):
         self.close()
         self.parent.updateInfo()
 
+    def _downloadPdfAction(self):
+        file = self._client.service.getPDFofReservation(self._reservation_info['id_reservation'])
+        print(file)
+        if not os.path.exists("../resources/pdfs"):
+            os.makedirs("../resources/pdfs")
+        with open(f'../resources/pdfs/{self._reservation_info["person"]["firstName"]}_{self._reservation_info["person"]["secondName"]}_{self._reservation_info["showing"]["movie"]["title"]}.pdf','wb') as pdf:
+            pdf.write(file)
+        win = DialogWindow(f"PDF has been saved in {os.path.join(os.getcwd(),'../resources/pdfs/')}")
+        win.show()
+        self.close()
     # Execute the application
 
 

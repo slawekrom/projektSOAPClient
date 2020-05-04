@@ -53,6 +53,7 @@ class CinemaManager(BaseWidget):
         self._reservation_panel.hide()
 
         self._search_reservations_button.value = self._searchReservationsButton
+        print(self._client.service)
         # Define the organization of the Form Controls
         self.formset = [{
             'a:Screening': [('_screening_day', '_screening_month', '_screening_year', '_search_screenings_button'), '=',
@@ -64,6 +65,7 @@ class CinemaManager(BaseWidget):
     def _screening_changed_event(self, row, column):
         self._all_showings = self._client.service.getShowingsByDate(self._selected_date.year, self._selected_date.month,
                                                                     self._selected_date.day)
+        print(self._all_showings)
         win = ScreeningWindow(self._all_showings[row], self._client)
         win.parent = self
         self._screening_panel.show()
