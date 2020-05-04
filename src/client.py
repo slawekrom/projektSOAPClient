@@ -76,7 +76,7 @@ class CinemaManager(BaseWidget):
         self._screening_panel.value = win
 
     def _reservation_changed_event(self, row, column):
-        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel)
+        self._all_reservations = self._client.service.getUserReservationsByPesel(self._pesel)
         win = ClientReservationWindow(self._all_reservations[row], self._client)
         win.parent = self
         self._screening_panel.hide()
@@ -96,7 +96,7 @@ class CinemaManager(BaseWidget):
             self._screening_list += [show.date.strftime("%H:%M"), str(show.movie.title),
                                      str(show.movie.description)]
         self._reservation_list.clear()
-        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel)
+        self._all_reservations = self._client.service.getUserReservationsByPesel(self._pesel)
         for reservation in self._all_reservations:
             self._reservation_list += [reservation['showing']['date'].strftime("%d-%m-%Y"),
                                        reservation['showing']['date'].strftime("%H:%M"),

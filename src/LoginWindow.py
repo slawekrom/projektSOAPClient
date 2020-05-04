@@ -25,9 +25,14 @@ class LoginWindow(BaseWidget):
         self.formset = ['_loginField', '_passwordField', ('_loginButton', '_registerButton')]
 
     def _loginAction(self):
-        self.parent.show()
-        self.parent.setUserPesel(self._loginField.value)
-        self.close()
+        if_authorized = self._client.service.authorize(str(self._loginField.value),str(self._passwordField.value))
+        if if_authorized:
+            self.message("Logged in","Logged in")
+            self.parent.setUserPesel(self._loginField.value)
+            self.parent.show()
+            self.close()
+        else:
+            self.alert("Credentials are incorrect, try again","Wrong credentials")
 
     def _registerAction(self):
         win = RegisterWindow(self._client)

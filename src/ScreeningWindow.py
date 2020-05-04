@@ -56,15 +56,13 @@ class ScreeningWindow(BaseWidget):
                                                            self._screening_info['id_showing'])
         print(if_places_free)
         if if_places_free:
-            person = self._client.service.getPersonByPesel(self._pesel)
-            self._client.service.addNewReservation(self._chosenSeatsField.value, False, person['id_person'],
+            person = self._client.service.getUserByPesel(self._pesel)
+            self._client.service.addNewReservation(self._chosenSeatsField.value, False, person['id_user'],
                                                    self._screening_info['id_showing'])
             print("Reservation added")
             self.message("Seats successfully booked", 'Booked')
             self.parent.updateInfo()
             self.close()
-            # win.parent = self
-            # win.show()
         else:
             self.alert("At least one place is taken, change your places", "Warning")
 

@@ -84,11 +84,11 @@ class ClientReservationWindow(BaseWidget):
         if not os.path.exists("../resources/pdfs"):
             os.makedirs("../resources/pdfs")
         with open(
-                f'../resources/pdfs/{self._reservation_info["person"]["firstName"]}_{self._reservation_info["person"]["secondName"]}_{self._reservation_info["showing"]["movie"]["title"]}.pdf',
+                f'../resources/pdfs/{self._reservation_info["user"]["firstName"]}_{self._reservation_info["user"]["secondName"]}_{self._reservation_info["showing"]["movie"]["title"]}.pdf',
                 'wb') as pdf:
             pdf.write(file)
         self.message(
-            f"PDF has been saved in {os.path.join(file_path, '{}_{}_{}.pdf'.format(self._reservation_info['person']['firstName'], self._reservation_info['person']['secondName'], self._reservation_info['showing']['movie']['title']))}",
+            f"PDF has been saved in {os.path.join(file_path, '{}_{}_{}.pdf'.format(self._reservation_info['user']['firstName'], self._reservation_info['user']['secondName'], self._reservation_info['showing']['movie']['title']))}",
             "PDF generated")
         self.close()
     # Execute the application
