@@ -1,11 +1,12 @@
 from calendar import monthrange
-from datetime import date, datetime
+from datetime import date
 
 from pyforms.basewidget import BaseWidget
-from pyforms.controls import ControlNumber, ControlText, ControlButton, ControlList, ControlDockWidget
+from pyforms.controls import ControlNumber, ControlButton, ControlList, ControlDockWidget
 from zeep import Client
 
 from src.ClientReservationWindow import ClientReservationWindow
+from src.LoginWindow import LoginWindow
 from src.ScreeningWindow import ScreeningWindow
 
 
@@ -14,6 +15,7 @@ class CinemaManager(BaseWidget):
     def __init__(self, *args, **kwargs):
         super().__init__('Cinema manager')
 
+        self._pesel = ""
         self._client = Client('http://localhost:8080/projekt?wsdl')
         self._selected_date = date.today()
 
@@ -41,8 +43,6 @@ class CinemaManager(BaseWidget):
 
         # Client window
         self._all_reservations = []
-        self._pesel_control = ControlText("PESEL:")
-        self._search_reservations_button = ControlButton("Search")
 
         self._reservation_list = ControlList('Reservations', readonly=True, select_entire_row=True,
                                              cell_double_clicked_event=self._reservation_changed_event)
@@ -51,14 +51,16 @@ class CinemaManager(BaseWidget):
         self._screening_panel.hide()
         self._reservation_panel = ControlDockWidget()
         self._reservation_panel.hide()
-
-        self._search_reservations_button.value = self._searchReservationsButton
+        self._loginWindow = LoginWindow(self._client)
+        self.hide()
+        self._loginWindow.parent = self
+        self._loginWindow.show()
         print(self._client.service)
         # Define the organization of the Form Controls
         self.formset = [{
             'a:Screening': [('_screening_day', '_screening_month', '_screening_year', '_search_screenings_button'), '=',
                             '_screening_list'],
-            'b:Client': [('_pesel_control', '_search_reservations_button'), '_reservation_list']
+            'b:Client': ['_reservation_list']
         },
         ]
 
@@ -66,7 +68,7 @@ class CinemaManager(BaseWidget):
         self._all_showings = self._client.service.getShowingsByDate(self._selected_date.year, self._selected_date.month,
                                                                     self._selected_date.day)
         print(self._all_showings)
-        win = ScreeningWindow(self._all_showings[row], self._client)
+        win = ScreeningWindow(self._all_showings[row], self._client, self._pesel)
         win.parent = self
         self._screening_panel.show()
         self._reservation_panel.hide()
@@ -74,13 +76,17 @@ class CinemaManager(BaseWidget):
         self._screening_panel.value = win
 
     def _reservation_changed_event(self, row, column):
-        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
+        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel)
         win = ClientReservationWindow(self._all_reservations[row], self._client)
         win.parent = self
         self._screening_panel.hide()
         self._reservation_panel.show()
         self._reservation_panel.label = "Reservation details"
         self._reservation_panel.value = win
+
+    def setUserPesel(self,pesel):
+        self._pesel = pesel
+        self.updateInfo()
 
     def updateInfo(self):
         self._screening_list.clear()
@@ -90,7 +96,7 @@ class CinemaManager(BaseWidget):
             self._screening_list += [show.date.strftime("%H:%M"), str(show.movie.title),
                                      str(show.movie.description)]
         self._reservation_list.clear()
-        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
+        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel)
         for reservation in self._all_reservations:
             self._reservation_list += [reservation['showing']['date'].strftime("%d-%m-%Y"),
                                        reservation['showing']['date'].strftime("%H:%M"),
@@ -104,15 +110,6 @@ class CinemaManager(BaseWidget):
         for show in self._all_showings:
             self._screening_list += [show.date.strftime("%H:%M"), str(show.movie.title),
                                      str(show.movie.description)]
-
-    def _searchReservationsButton(self):
-        self._reservation_list.clear()
-        self._all_reservations = self._client.service.getPersonReservationsByPesel(self._pesel_control.value)
-        for reservation in self._all_reservations:
-            self._reservation_list += [reservation['showing']['date'].strftime("%d-%m-%Y"),
-                                       reservation['showing']['date'].strftime("%H:%M"),
-                                       str(reservation['showing']['movie']['title']), str(reservation['places']),
-                                       "Yes" if reservation['isPaid'] is True else "No"]
 
     def _change_day(self):
         self._selected_date = self._selected_date.replace(day=int(self._screening_day.value))
