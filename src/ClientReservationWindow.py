@@ -1,23 +1,32 @@
+import asyncio
+import json
 import os
+import shutil
+from datetime import datetime
 
 import pyforms
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlText
 from pyforms.controls import ControlButton, ControlTextArea, ControlCheckBox
+from requests import Session
 from zeep import Client
 
 
 class ClientReservationWindow(BaseWidget):
 
-    def __init__(self, reservation_info: dict, client: Client):
+    def __init__(self, reservation_info: dict, url: str, session: Session):
         BaseWidget.__init__(self, 'Person window')
         # Definition of the forms fields
-        self._client = client
+        self._url = url
+        self._session = session
         self._reservation_info = reservation_info
         self._dateField = ControlText('Date', enabled=False,
-                                      default=self._reservation_info['showing']['date'].strftime("%d-%m-%Y"))
+                                      default=datetime.strptime(self._reservation_info['showing']['date'],
+                                                                '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%d-%m-%Y"))
         self._timeField = ControlText('Time', enabled=False,
-                                      default=self._reservation_info['showing']['date'].strftime("%H:%M"))
+                                      default=datetime.strptime(self._reservation_info['showing']['date'],
+                                                                '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime(
+                                          "%H:%M"))
         self._titleField = ControlText('Title', enabled=False,
                                        default=str(self._reservation_info['showing']['movie']['title']))
         self._availableSeatsField = ControlTextArea('Available seats', enabled=False, visible=False,
@@ -41,12 +50,16 @@ class ClientReservationWindow(BaseWidget):
 
     def _payAction(self):
         if not self._reservation_info['isPaid']:
-            self._client.service.editReservation(self._reservation_info['id_reservation'],
-                                                 self._reservation_info['places'],
-                                                 not self._reservation_info['isPaid'])
+            updated = {'places': str(self._reservation_info['places']),
+                       'paid': not self._reservation_info['isPaid'],
+                       'userId': self._reservation_info["user"]['id_user'],
+                       'showingId': self._reservation_info['showing']['id_showing']}
+            print(updated)
+            self._session.put(self._url + f'/reservations/{self._reservation_info["id_reservation"]}',
+                              json=updated)
             self.message("Thanks for paying for the reservation", "Reservation payed")
             self.close()
-            self.parent.updateInfo()
+            asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
         else:
             self.warning("You have already paid for the reservation", "Reservation already payed for")
             self.close()
@@ -64,29 +77,33 @@ class ClientReservationWindow(BaseWidget):
         else:
             self._seatsField.enabled = False
             self._availableSeatsField.hide()
-            self._client.service.editReservation(self._reservation_info['id_reservation'],
-                                                 str(self._seatsField.value),
-                                                 self._reservation_info['isPaid'])
+            self._session.put(self._url + f'/reservations/{self._reservation_info["id_reservation"]}',
+                              data=json.dumps({'places': str(self._seatsField.value),
+                                               'paid': self._reservation_info['isPaid'],
+                                               'userId': self._reservation_info["user"]['id_user'],
+                                               'showingId': self._reservation_info['showing']['id_showing']}),
+                              headers={'Content-type': 'application/json', 'Accept': 'text/plain'})
             self.message("Places successfully changed", "Changed places")
             self.close()
-            self.parent.updateInfo()
+            asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
 
     def _removeAction(self):
-        self._client.service.deleteReservation(self._reservation_info['id_reservation'])
+        self._session.delete(self._url + f'/reservations/{self._reservation_info["id_reservation"]}')
         self.alert("Reservation has been removed", "Removed reservation")
         self.close()
-        self.parent.updateInfo()
+        asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
 
     def _downloadPdfAction(self):
-        file = self._client.service.getPDFofReservation(self._reservation_info['id_reservation'])
-        file_path = os.path.abspath("../resources/pdfs")
-        print(file)
+        file = self._session.get(self._url + f'/reservations/pdf/{self._reservation_info["id_reservation"]}',
+                                 stream=True)
         if not os.path.exists("../resources/pdfs"):
             os.makedirs("../resources/pdfs")
         with open(
                 f'../resources/pdfs/{self._reservation_info["user"]["firstName"]}_{self._reservation_info["user"]["secondName"]}_{self._reservation_info["showing"]["movie"]["title"]}.pdf',
                 'wb') as pdf:
-            pdf.write(file)
+            file.raw.decode_content = True
+            shutil.copyfileobj(file.raw, pdf)
+        file_path = os.path.abspath("../resources/pdfs")
         self.message(
             f"PDF has been saved in {os.path.join(file_path, '{}_{}_{}.pdf'.format(self._reservation_info['user']['firstName'], self._reservation_info['user']['secondName'], self._reservation_info['showing']['movie']['title']))}",
             "PDF generated")

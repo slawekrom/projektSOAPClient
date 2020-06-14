@@ -1,32 +1,44 @@
-import io
+import asyncio
+import json
 import os
+import shutil
+from datetime import datetime
 
 import cv2
 import pyforms
-from PIL import Image
+import requests
 from pyforms.basewidget import BaseWidget
 from pyforms.controls import ControlButton, ControlTextArea, ControlDockWidget, ControlImage, ControlList
 from pyforms.controls import ControlText
-from zeep import Client
+from requests import Session
 
 
 class ScreeningWindow(BaseWidget):
 
-    def __init__(self, screening_info: dict, client: Client, pesel: str):
+    async def downloadImage(self):
+        self._image = self._session.get(self._url + f"/movies/image/{self._screening_info['movie']['id_movie']}",
+                                        stream=True)
+        if not os.path.exists("../resources/images"):
+            os.makedirs("../resources/images")
+        with open(f'../resources/images/{str(self._screening_info["movie"]["id_movie"])}.jpg', 'wb') as file:
+            self._image.raw.decode_content = True
+            shutil.copyfileobj(self._image.raw, file)
+        self._imageField.value = cv2.imread(f'../resources/images/{str(self._screening_info["movie"]["id_movie"])}.jpg')
+
+    def __init__(self, screening_info: dict, url: str, pesel: str, session: Session):
         BaseWidget.__init__(self, 'Person window')
         # Definition of the forms fields
         self._screening_info = screening_info
-        self._client = client
+        self._url = url
+        self._session = session
         self._pesel = pesel
-        self._image = self._client.service.getImage(self._screening_info['movie']['id_movie'])
-        image_open = Image.open(io.BytesIO(self._image))
-        rgb_im = image_open.convert('RGB')
-        if not os.path.exists("../resources/images"):
-            os.makedirs("../resources/images")
-        rgb_im.save(f'../resources/images/{str(self._screening_info["movie"]["id_movie"])}.jpg')
+        self._image = None
         self._dateField = ControlText('Date', enabled=False,
-                                      default=self._screening_info['date'].strftime("%d-%m-%Y"))
-        self._timeField = ControlText('Time', enabled=False, default=self._screening_info['date'].strftime("%H:%M"))
+                                      default=datetime.strptime(
+                                          self._screening_info["date"], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%d-%m-%Y"))
+        self._timeField = ControlText('Time', enabled=False,
+                                      default=datetime.strptime(
+                                          self._screening_info["date"], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%H:%M"))
         self._titleField = ControlText('Title', enabled=False, default=self._screening_info['movie']['title'])
         self._descriptionField = ControlTextArea('Description', enabled=False,
                                                  default=self._screening_info['movie']['description'])
@@ -39,7 +51,7 @@ class ScreeningWindow(BaseWidget):
         self._directorField += [self._screening_info['movie']['director']['firstName'],
                                 self._screening_info['movie']['director']['secondName']]
         self._imageField = ControlImage('Poster')
-        self._imageField.value = cv2.imread(f'../resources/images/{str(self._screening_info["id_showing"])}.jpg')
+        asyncio.get_event_loop().run_until_complete(self.downloadImage())
         self._freeSeatsField = ControlTextArea('Free seats', enabled=False, default=self._screening_info['freePlaces'])
         self._chosenSeatsField = ControlText('Chosen seats (write down the numbers and separate them with ";")')
         self._buttonField = ControlButton('Reserve')
@@ -52,22 +64,23 @@ class ScreeningWindow(BaseWidget):
                         ('_freeSeatsField', '_chosenSeatsField'), '_buttonField', '_panel']
 
     def __buttonAction(self):
-        if_places_free = self._client.service.ifPlacesFree(self._chosenSeatsField.value,
-                                                           self._screening_info['id_showing'])
-        print(if_places_free)
+        if_places_free = json.loads(requests.get(
+            self._url + f'/showings/showing?places={self._chosenSeatsField.value}&showingId={self._screening_info["id_showing"]}').text)
         if if_places_free:
-            person = self._client.service.getUserByPesel(self._pesel)
-            self._client.service.addNewReservation(self._chosenSeatsField.value, False, person['id_user'],
-                                                   self._screening_info['id_showing'])
-            print("Reservation added")
+            person = json.loads(requests.get(self._url + f'/user/pesel?pesel={self._pesel}').text)
+            r = requests.post(self._url + f'/reservations',
+                              json={'places': self._chosenSeatsField.value, 'paid': False, 'userId': person['id_user'],
+                                    'showingId': self._screening_info['id_showing']})
+            print(r.text)
+            print(r.content)
+            print(r.status_code)
             self.message("Seats successfully booked", 'Booked')
-            self.parent.updateInfo()
+            asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
             self.close()
         else:
             self.alert("At least one place is taken, change your places", "Warning")
 
-    # Execute the application
 
-
+# Execute the application
 if __name__ == "__main__":
     pyforms.start_app(ScreeningWindow)
