@@ -19,7 +19,7 @@ class CinemaManager(BaseWidget):
 
         self._pesel = ""
         self._session = Session()
-        self._session.proxies = {'http': 'http://localhost:4040', 'https': 'https://localhost:4040'}
+        # self._session.proxies = {'http': 'http://localhost:4040', 'https': 'https://localhost:4040'}
         self._url = 'http://localhost:8080/kinoService_war_exploded'
         self._selected_date = date.today()
 
@@ -64,9 +64,10 @@ class CinemaManager(BaseWidget):
 
     def _screening_changed_event(self, row, column):
         self._all_showings = json.loads(self._session.get(
-            self._url + f'/showings/showing/{self._selected_date.year}/{self._selected_date.month}/{self._selected_date.day}',
-            proxies=self._session).text)
-        win = ScreeningWindow(self._all_showings[row], self._url, self._pesel, self._session)
+            self._url + f'/showings/showing/{self._selected_date.year}/{self._selected_date.month}/{self._selected_date.day}').text)
+        selected_showing = json.loads(
+            self._session.get(self._url + f'/showings/{self._all_showings[row]["id_showing"]}').text)
+        win = ScreeningWindow(selected_showing, self._url, self._pesel, self._session)
         win.parent = self
         self._screening_panel.show()
         self._reservation_panel.hide()
@@ -75,7 +76,9 @@ class CinemaManager(BaseWidget):
 
     def _reservation_changed_event(self, row, column):
         self._all_reservations = json.loads(self._session.get(self._url + f'/user/reservation/{self._pesel}').text)
-        win = ClientReservationWindow(self._all_reservations[row], self._url, self._session)
+        chosen_reservation = json.loads(
+            self._session.get(self._url + f'/reservations/{self._all_reservations[row]["id_reservation"]}').text)
+        win = ClientReservationWindow(chosen_reservation, self._url, self._session)
         win.parent = self
         self._screening_panel.hide()
         self._reservation_panel.show()
@@ -97,9 +100,7 @@ class CinemaManager(BaseWidget):
                 str(show["movie"]["description"])]
         self._reservation_list.clear()
         self._all_reservations = json.loads(self._session.get(self._url + f'/user/reservation/{self._pesel}').text)
-        print(self._all_reservations)
         for reservation in self._all_reservations:
-            print(type(reservation['showing']["date"]))
             self._reservation_list += [
                 datetime.strptime(reservation['showing']['date'], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%d-%m-%Y"),
                 datetime.strptime(reservation['showing']['date'], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%H:%M"),

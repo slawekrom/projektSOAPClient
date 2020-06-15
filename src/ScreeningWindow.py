@@ -16,7 +16,7 @@ from requests import Session
 class ScreeningWindow(BaseWidget):
 
     async def downloadImage(self):
-        self._image = self._session.get(self._url + f"/movies/image/{self._screening_info['movie']['id_movie']}",
+        self._image = self._session.get(self._screening_info['links'][1]['uri'],
                                         stream=True)
         if not os.path.exists("../resources/images"):
             os.makedirs("../resources/images")
@@ -71,9 +71,6 @@ class ScreeningWindow(BaseWidget):
             r = requests.post(self._url + f'/reservations',
                               json={'places': self._chosenSeatsField.value, 'paid': False, 'userId': person['id_user'],
                                     'showingId': self._screening_info['id_showing']})
-            print(r.text)
-            print(r.content)
-            print(r.status_code)
             self.message("Seats successfully booked", 'Booked')
             asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
             self.close()

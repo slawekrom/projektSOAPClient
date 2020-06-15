@@ -6,10 +6,9 @@ from datetime import datetime
 
 import pyforms
 from pyforms.basewidget import BaseWidget
-from pyforms.controls import ControlText
 from pyforms.controls import ControlButton, ControlTextArea, ControlCheckBox
+from pyforms.controls import ControlText
 from requests import Session
-from zeep import Client
 
 
 class ClientReservationWindow(BaseWidget):
@@ -51,12 +50,10 @@ class ClientReservationWindow(BaseWidget):
     def _payAction(self):
         if not self._reservation_info['isPaid']:
             updated = {'places': str(self._reservation_info['places']),
-                       'paid': not self._reservation_info['isPaid'],
+                       'paid': str(not self._reservation_info['isPaid']),
                        'userId': self._reservation_info["user"]['id_user'],
                        'showingId': self._reservation_info['showing']['id_showing']}
-            print(updated)
-            self._session.put(self._url + f'/reservations/{self._reservation_info["id_reservation"]}',
-                              json=updated)
+            self._session.put(self._reservation_info['links'][0]['uri'], json=updated)
             self.message("Thanks for paying for the reservation", "Reservation payed")
             self.close()
             asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
@@ -77,11 +74,10 @@ class ClientReservationWindow(BaseWidget):
         else:
             self._seatsField.enabled = False
             self._availableSeatsField.hide()
-            self._session.put(self._url + f'/reservations/{self._reservation_info["id_reservation"]}',
-                              data=json.dumps({'places': str(self._seatsField.value),
-                                               'paid': self._reservation_info['isPaid'],
-                                               'userId': self._reservation_info["user"]['id_user'],
-                                               'showingId': self._reservation_info['showing']['id_showing']}),
+            self._session.put(self._reservation_info['links'][0]['uri'], data=json.dumps(
+                {'places': str(self._seatsField.value), 'paid': self._reservation_info['isPaid'],
+                 'userId': self._reservation_info["user"]['id_user'],
+                 'showingId': self._reservation_info['showing']['id_showing']}),
                               headers={'Content-type': 'application/json', 'Accept': 'text/plain'})
             self.message("Places successfully changed", "Changed places")
             self.close()
@@ -94,7 +90,7 @@ class ClientReservationWindow(BaseWidget):
         asyncio.get_event_loop().run_until_complete(self.parent.updateInfo())
 
     def _downloadPdfAction(self):
-        file = self._session.get(self._url + f'/reservations/pdf/{self._reservation_info["id_reservation"]}',
+        file = self._session.get(self._reservation_info['links'][1]['uri'],
                                  stream=True)
         if not os.path.exists("../resources/pdfs"):
             os.makedirs("../resources/pdfs")
