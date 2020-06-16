@@ -34,11 +34,13 @@ class ScreeningWindow(BaseWidget):
         self._pesel = pesel
         self._image = None
         self._dateField = ControlText('Date', enabled=False,
-                                      default=datetime.strptime(
-                                          self._screening_info["date"], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%d-%m-%Y"))
+                                      default=datetime.utcfromtimestamp(
+                                          self._screening_info["date"] / 1000).replace(
+                                          microsecond=self._screening_info['date'] % 1000 * 1000).strftime("%d-%m-%Y"))
         self._timeField = ControlText('Time', enabled=False,
-                                      default=datetime.strptime(
-                                          self._screening_info["date"], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%H:%M"))
+                                      default=datetime.utcfromtimestamp(
+                                          self._screening_info["date"] / 1000).replace(
+                                          microsecond=self._screening_info['date'] % 1000 * 1000).strftime("%H:%M"))
         self._titleField = ControlText('Title', enabled=False, default=self._screening_info['movie']['title'])
         self._descriptionField = ControlTextArea('Description', enabled=False,
                                                  default=self._screening_info['movie']['description'])

@@ -10,7 +10,6 @@ from pyforms.controls import ControlButton, ControlTextArea, ControlCheckBox
 from pyforms.controls import ControlText
 from requests import Session
 
-
 class ClientReservationWindow(BaseWidget):
 
     def __init__(self, reservation_info: dict, url: str, session: Session):
@@ -20,11 +19,14 @@ class ClientReservationWindow(BaseWidget):
         self._session = session
         self._reservation_info = reservation_info
         self._dateField = ControlText('Date', enabled=False,
-                                      default=datetime.strptime(self._reservation_info['showing']['date'],
-                                                                '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%d-%m-%Y"))
+                                      default=datetime.utcfromtimestamp(
+                                          self._reservation_info['showing']['date'] / 1000).replace(
+                                          microsecond=self._reservation_info['showing']['date'] % 1000 * 1000).strftime(
+                                          "%d-%m-%Y"))
         self._timeField = ControlText('Time', enabled=False,
-                                      default=datetime.strptime(self._reservation_info['showing']['date'],
-                                                                '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime(
+                                      default=datetime.utcfromtimestamp(
+                                          self._reservation_info['showing']['date'] / 1000).replace(
+                                          microsecond=self._reservation_info['showing']['date'] % 1000 * 1000).strftime(
                                           "%H:%M"))
         self._titleField = ControlText('Title', enabled=False,
                                        default=str(self._reservation_info['showing']['movie']['title']))

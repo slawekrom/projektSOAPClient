@@ -11,7 +11,6 @@ from src.ClientReservationWindow import ClientReservationWindow
 from src.LoginWindow import LoginWindow
 from src.ScreeningWindow import ScreeningWindow
 
-
 class CinemaManager(BaseWidget):
 
     def __init__(self, *args, **kwargs):
@@ -20,7 +19,7 @@ class CinemaManager(BaseWidget):
         self._pesel = ""
         self._session = Session()
         # self._session.proxies = {'http': 'http://localhost:4040', 'https': 'https://localhost:4040'}
-        self._url = 'http://localhost:8080/kinoService_war_exploded'
+        self._url = 'http://localhost:8080/cinema'
         self._selected_date = date.today()
 
         # Screening window
@@ -95,15 +94,17 @@ class CinemaManager(BaseWidget):
             self._url + f'/showings/showing/{self._selected_date.year}/{self._selected_date.month}/{self._selected_date.day}').text)
         for show in self._all_showings:
             self._screening_list += [
-                datetime.strptime(show["date"], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime(
-                    "%H:%M"), str(show['movie']["title"]),
+                datetime.utcfromtimestamp(show["date"] / 1000).replace(
+                    microsecond=show['date'] % 1000 * 1000).strftime("%H:%M"), str(show['movie']["title"]),
                 str(show["movie"]["description"])]
         self._reservation_list.clear()
         self._all_reservations = json.loads(self._session.get(self._url + f'/user/reservation/{self._pesel}').text)
         for reservation in self._all_reservations:
             self._reservation_list += [
-                datetime.strptime(reservation['showing']['date'], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%d-%m-%Y"),
-                datetime.strptime(reservation['showing']['date'], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%H:%M"),
+                datetime.utcfromtimestamp(reservation['showing']['date'] / 1000).replace(
+                    microsecond=reservation['showing']['date'] % 1000 * 1000).strftime("%d-%m-%Y"),
+                datetime.utcfromtimestamp(reservation['showing']['date'] / 1000).replace(
+                    microsecond=reservation['showing']['date'] % 1000 * 1000).strftime("%H:%M"),
                 str(reservation['showing']['movie']['title']), str(reservation['places']),
                 "Yes" if reservation['isPaid'] is True else "No"]
 
@@ -113,7 +114,8 @@ class CinemaManager(BaseWidget):
             self._url + f'/showings/showing/{self._selected_date.year}/{self._selected_date.month}/{self._selected_date.day}').text)
         for show in self._all_showings:
             self._screening_list += [
-                datetime.strptime(show["date"], '%Y-%m-%dT%H:%M:%SZ[UTC]').strftime("%H:%M"),
+                datetime.utcfromtimestamp(show["date"] / 1000).replace(
+                    microsecond=show['date'] % 1000 * 1000).strftime("%H:%M"),
                 str(show['movie']['title']),
                 str(show['movie']['description'])]
 
